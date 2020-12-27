@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>database</title>
+  <link rel="stylesheet" href="./static/bootstrap.min.css" />
+</head>
+<body>
+  <div id="vue">
+    <v-client-table :columns="columns" v-model="list" :options="options">
+      <div slot="TABLE_SCHEMA" slot-scope="props">
+        {{props.row.TABLE_SCHEMA}}
+      </div>
+      <div slot="ENGINE" slot-scope="props">
+        {{props.row.ENGINE}}
+      </div>
+      <div slot="TABLE_NAME" slot-scope="props">
+        {{props.row.TABLE_NAME}}
+      </div>
+      <div slot="TABLE_COMMENT" slot-scope="{row, update, setEditing, isEditing, revertValue}">
+        <div style="min-height:25px;min-width:50px;" @dblclick="setEditing(true)" v-if="!isEditing()">
+          <a>{{row.TABLE_COMMENT}}</a>
+        </div>
+        <div v-else>
+          <input type="text" v-model="row.TABLE_COMMENT">
+          <button type="button" class="btn btn-info btn-sm" @click="update(row.TABLE_COMMENT); setEditing(false)">更改</button>
+          <button type="button" class="btn btn-default btn-sm" @click="revertValue(); setEditing(false)">取消</button>
+        </div>
+      </div>
+      <div slot="action" slot-scope="props">
+        <a v-bind:href="'./table_info.html?db_name='+props.row.TABLE_SCHEMA+'&tb_name='+props.row.TABLE_NAME">详情</a>
+      </div>
+    </v-client-table>
+  </div>
+  <script src="./static/jquery.min.js"></script>
+  <script src="./static/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+  <script src="./static/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
+  <script src="./static/vue.min.js"></script>
+  <script src="./static/vue-tables-2.min.js"></script>
+  <script>
+    Vue.use(VueTables.ClientTable, 'bootstrap4');
+    new Vue({
+      el: '#vue',
+      data: {
+        columns: ['TABLE_SCHEMA', 'ENGINE', 'TABLE_NAME', 'TABLE_COMMENT', 'action'],
+        list: [],
+        options: {
+          headings: {
+            TABLE_SCHEMA: '数据库',
+            ENGINE: '引擎',
+            TABLE_NAME: '表名称',
+            TABLE_COMMENT: '描述',
+            action: '',
+          },
+          pagination: {
+            show: false
+          },
+          editableColumns: ['TABLE_COMMENT'],
+          sortable: ['TABLE_NAME'],
+          filterable: ['TABLE_NAME'],
+          perPageValues: [],
+          perPage: 100000,
+          filterable: true,
+          uniqueKey: 'TABLE_NAME'
+        },
+        isfirst: true
+      },
+      mounted: function(){
+        this.getTables();
+      },
+      watch: {
+        list: function(newval, oldval){
+          if(this.isfirst)
+          {
+            return;
+          }
+          var i;
+          for(i=0; i<newval.length; i++)
+          {
+            if(newval[i].TABLE_COMMENT.trim() !== oldval[i].TABLE_COMMENT.trim())
+            {
+              this.updateComment(newval[i].TABLE_SCHEMA, newval[i].TABLE_NAME, newval[i].TABLE_COMMENT);
+              return;
+            }
+          }
+        }
+      },
+      methods: {
+        updateComment: function(db, tb, comment)
+        {
+          $.ajax({
+            url: './api/update_table_comment/db/'+db+'/tb/'+tb,
+            type: 'post',
+            dataType: 'json',
+            data: {comment: comment},
+            success: function(data)
+            {
+              if(data !== false)
+              {
+                alert('修改成功');
+              }
+              else
+              {
+                alert('修改失败');
+              }
+            }
+          });
+        },
+        getQueryVariable: function (variable)
+        {
+          var query = window.location.search.substring(1);
+          var vars = query.split("&");
+          for (var i=0;i<vars.length;i++) {
+            var pair = vars[i].split("=");
+            if(pair[0] == variable){return pair[1];}
+          }
+          return(false);
+        },
+        getTables: function()
+        {
+          $.ajax({
+            url: './api/tables/db/'+this.getQueryVariable('db_name'),
+            dataType: 'json',
+            type: 'get',
+            $vue: this,
+            success: function(result){
+              this.$vue.list = result;
+              setTimeout((function($vue){
+                return function(){
+                  $vue.isfirst = false;
+                }
+              })(this.$vue),1000);
+            }
+          });
+        }
+      },
+    });
+  </script>
+</body>
+</html>

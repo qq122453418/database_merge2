@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>database</title>
+  <link rel="stylesheet" href="./static/bootstrap.min.css" />
+</head>
+<body>
+  <div id="vue">
+     <v-client-table :columns="columns" v-model="list" :options="options">
+       <div slot="db_name" slot-scope="props">
+         <a v-bind:href="'./tables.html?db_name='+props.row.Database">{{props.row.Database}}</a>
+       </div>
+     </v-client-table>
+  </div>
+  <script src="./static/jquery.min.js"></script>
+  <script src="./static/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+  <script src="./static/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
+  <script src="./static/vue.min.js"></script>
+  <script src="./static/vue-tables-2.min.js"></script>
+  <script>
+    Vue.use(VueTables.ClientTable, 'bootstrap4');
+    new Vue({
+      el: '#vue',
+      data: {
+        columns: ['db_name'],
+        list: [],
+        options: {
+          headings: {
+            db_name: 'db_name'
+          },
+          pagination: {
+            show: false
+          },
+          perPageValues: [],
+          perPage: 100000,
+          filterable: false
+        }
+      },
+      mounted: function(){
+        this.getDatabases();
+      },
+      methods: {
+        getDatabases: function(){
+        $.ajax({
+              url: './api/databases',
+              dataType: 'json',
+              type: 'get',
+              $vue: this,
+              success: function(result){
+                this.$vue.list = result
+              }
+            });
+        }
+      },
+    });
+  </script>
+</body>
+</html>
